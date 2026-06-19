@@ -541,6 +541,7 @@
             .btn { width: 100%; justify-content: center; }
         }
     </style>
+<base target="_blank">
 </head>
 <body>
     <svg width="0" height="0" style="position:absolute">
@@ -632,6 +633,19 @@
                 <span>⬇️</span>
                 <span>Download Zip</span>
             </button>
+            <div class="more-prompt" id="morePrompt" style="margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #a7f3d0;">
+                <div style="color: #065f46; font-weight: 600; font-size: 1rem; margin-bottom: 1rem;">Want to zip more files?</div>
+                <div class="actions" style="margin-top: 0;">
+                    <button class="btn btn-primary" id="yesMoreBtn">
+                        <span>📁</span>
+                        <span>Yes, zip more</span>
+                    </button>
+                    <button class="btn btn-secondary" id="noMoreBtn">
+                        <span>✕</span>
+                        <span>No, I'm done</span>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -855,8 +869,22 @@
                 successMessage.classList.add('active');
                 successDetails.textContent = `Your ${zipName}.zip (${formatSize(blob.size)}) is ready`;
 
-                downloadBtn.onclick = () => {
+                        downloadBtn.onclick = () => {
                     saveAs(blob, `${zipName}.zip`);
+                };
+
+                // More files prompt handlers
+                document.getElementById('yesMoreBtn').onclick = () => {
+                    files = [];
+                    updateFileList();
+                    successMessage.classList.remove('active');
+                    progressContainer.classList.remove('active');
+                    zipNameInput.value = 'archive';
+                    dropZone.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                };
+
+                document.getElementById('noMoreBtn').onclick = () => {
+                    document.getElementById('morePrompt').innerHTML = '<div style="color: #065f46; font-size: 0.9375rem;">👋 Thanks for using ZipCraft!</div>';
                 };
             } catch (err) {
                 progressStatus.textContent = 'Error: ' + err.message;
