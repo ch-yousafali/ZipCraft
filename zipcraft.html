@@ -208,7 +208,8 @@
             background: var(--surface);
             border-radius: 16px;
             border: 1px solid var(--border);
-            overflow: hidden;
+            max-height: 400px;
+            overflow-y: auto;
         }
 
         .file-item {
@@ -468,18 +469,6 @@
             box-shadow: 0 0 0 3px var(--primary-light);
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 3rem 2rem;
-            color: var(--text-secondary);
-        }
-
-        .empty-state-icon {
-            font-size: 3rem;
-            margin-bottom: 1rem;
-            opacity: 0.5;
-        }
-
         footer {
             margin-top: auto;
             padding-top: 3rem;
@@ -674,7 +663,6 @@
         let currentZipBlob = null;
         const circumference = 2 * Math.PI * 52;
 
-        // Drag and drop handlers
         dropZone.addEventListener('click', () => fileInput.click());
 
         dropZone.addEventListener('dragover', (e) => {
@@ -686,12 +674,12 @@
             dropZone.classList.remove('drag-over');
         });
 
-        dropZone.addEventListener('drop', (e) => {
+        dropZone.addEventListener('drop', async (e) => {
             e.preventDefault();
             dropZone.classList.remove('drag-over');
             const items = e.dataTransfer.items;
             if (items) {
-                handleItems(items);
+                await handleItems(items);
             } else {
                 handleFiles(e.dataTransfer.files);
             }
@@ -708,7 +696,6 @@
                 if (item.kind === 'file') {
                     const entry = item.webkitGetAsEntry();
                     if (entry) {
-                        // If it's a directory, preserve its name as root; if file, no prefix needed
                         const entryFiles = await traverseEntry(entry, '');
                         newFiles.push(...entryFiles);
                     }
@@ -721,14 +708,12 @@
             return new Promise((resolve) => {
                 if (entry.isFile) {
                     entry.file(file => {
-                        // Preserve full path including parent folders
-                        file.relativePath = path + file.name;
+                        file.relativePath = path + entry.name;
                         resolve([file]);
                     });
                 } else if (entry.isDirectory) {
                     const reader = entry.createReader();
                     const allFiles = [];
-                    // Build the correct path: current path + this folder name + /
                     const folderPath = path + entry.name + '/';
 
                     function readEntries() {
@@ -737,7 +722,6 @@
                                 resolve(allFiles);
                             } else {
                                 for (const e of entries) {
-                                    // Pass the accumulated folder path down recursively
                                     const files = await traverseEntry(e, folderPath);
                                     allFiles.push(...files);
                                 }
@@ -752,7 +736,8 @@
 
         function handleFiles(fileList) {
             const newFiles = Array.from(fileList).map(file => {
-                file.relativePath = file.name;
+                // webkitRelativePath contains the full relative path structure when uploading folders
+                file.relativePath = file.webkitRelativePath || file.name;
                 return file;
             });
             addFiles(newFiles);
@@ -763,7 +748,7 @@
             updateFileList();
         }
 
-        function removeFile(index) {
+        window.removeFile = function(index) {
             files.splice(index, 1);
             updateFileList();
         }
@@ -781,7 +766,7 @@
                 const size = formatSize(file.size);
                 const icon = getFileIcon(file.name);
                 return `
-                    <div class="file-item" style="animation-delay: ${index * 0.05}s">
+                    <div class="file-item" style="animation-delay: ${index * 0.02}s">
                         <div class="file-icon">${icon}</div>
                         <div class="file-info">
                             <div class="file-name">${escapeHtml(file.relativePath || file.name)}</div>
@@ -874,11 +859,10 @@
                 successMessage.classList.add('active');
                 successDetails.textContent = `Your ${zipName}.zip (${formatSize(blob.size)}) is ready`;
 
-                        downloadBtn.onclick = () => {
+                downloadBtn.onclick = () => {
                     saveAs(blob, `${zipName}.zip`);
                 };
 
-                // More files prompt handlers
                 document.getElementById('yesMoreBtn').onclick = () => {
                     files = [];
                     updateFileList();
