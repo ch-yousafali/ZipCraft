@@ -708,7 +708,8 @@
                 if (item.kind === 'file') {
                     const entry = item.webkitGetAsEntry();
                     if (entry) {
-                        const entryFiles = await traverseEntry(entry);
+                        // If it's a directory, preserve its name as root; if file, no prefix needed
+                        const entryFiles = await traverseEntry(entry, '');
                         newFiles.push(...entryFiles);
                     }
                 }
@@ -720,12 +721,15 @@
             return new Promise((resolve) => {
                 if (entry.isFile) {
                     entry.file(file => {
+                        // Preserve full path including parent folders
                         file.relativePath = path + file.name;
                         resolve([file]);
                     });
                 } else if (entry.isDirectory) {
                     const reader = entry.createReader();
                     const allFiles = [];
+                    // Build the correct path: current path + this folder name + /
+                    const folderPath = path + entry.name + '/';
 
                     function readEntries() {
                         reader.readEntries(async (entries) => {
@@ -733,7 +737,8 @@
                                 resolve(allFiles);
                             } else {
                                 for (const e of entries) {
-                                    const files = await traverseEntry(e, path + entry.name + '/');
+                                    // Pass the accumulated folder path down recursively
+                                    const files = await traverseEntry(e, folderPath);
                                     allFiles.push(...files);
                                 }
                                 readEntries();
